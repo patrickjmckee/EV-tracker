@@ -1,4 +1,4 @@
-# EV Tracker **In-Progress: core scraping + notifications working, no scheduling yet**
+# EV Tracker **In-Progress: core scraping + notifications working, daily GitHub Actions run scheduled**
 
 ## Done (2026-07-24)
 
@@ -13,9 +13,12 @@
 - [x] Added `NTFY_SERVER` env var so ntfy target can be overridden (self-hosted/testing)
 - [x] Repo created and pushed: `https://github.com/patrickjmckee/EV-tracker`
 
+## Done (2026-07-31)
+
+- [x] Built `.github/workflows/daily-search.yml` -- daily run at 13:00 UTC (7am MDT) + manual `workflow_dispatch`, commits `seen_listings.json` back to main, Autotrader disabled in CI pending unlocker
+
 ## Next steps
 
-- [ ] Add an unlocker (Bright Data or alternative) for Autotrader, or drop it from the model sweep
-- [ ] Build `.github/workflows/daily-search.yml` for the scheduled daily run described in the README -- doesn't exist yet
-- [ ] Decide on GitHub Actions secrets setup (`NTFY_TOPIC`, `DISCORD_WEBHOOK_URL`, `BRIGHTDATA_API_KEY`)
+- [ ] Add repo secrets `NTFY_TOPIC` and `DISCORD_WEBHOOK_URL` (Settings > Secrets and variables > Actions) -- without them the run still works but sends no notifications
+- [ ] Add an unlocker (Bright Data or alternative) for Autotrader, then flip `ENABLE_AUTOTRADER` back on in the workflow and add `BRIGHTDATA_API_KEY` secret
 - [ ] Re-check CarGurus entity IDs periodically -- confirmed correct as of 2026-07-24 but noted as liable to drift

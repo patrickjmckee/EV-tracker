@@ -1,0 +1,63 @@
+name: Daily EV search
+
+on:
+  schedule:
+    # 13:00 UTC = 7am MDT / 6am MST (zip 84015)
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # push updated seen_listings.json
+
+concurrency:
+  group: daily-search
+  cancel-in-progress: false
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ensure a browser is available
+        # Runners ship Google Chrome at /usr/bin/google-chrome, which
+        # browser_fetch._find_chrome() picks up first. Fall back to
+        # Playwright Chromium if the image ever drops it.
+        run: |
+          if [ ! -x /usr/bin/google-chrome ]; then
+            python -m playwright install --with-deps chromium
+          fi
+
+      - name: Run search
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Autotrader is bot-blocked without an unlocker (see README);
+          # skip it until Bright Data or similar is wired in.
+          ENABLE_AUTOTRADER: "false"
+        # nodriver runs headless=False, so give it a virtual display
+        run: |
+          sudo apt-get install -y xvfb
+          xvfb-run -a python src/main.py
+
+      - name: Commit updated seen listings
+        run: |
+          git add seen_listings.json
+          if git diff --cached --quiet; then
+            echo "No new listings; nothing to commit."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Update seen listings ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin main
+            git push
+          fi

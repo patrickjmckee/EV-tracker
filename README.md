@@ -28,7 +28,8 @@ Daily search across Cars.com, Autotrader, CarGurus for matching EVs. Pushes new 
   - `NTFY_TOPIC`
   - `DISCORD_WEBHOOK_URL`
   - `BRIGHTDATA_API_KEY` (if/when Autotrader unlocking is added)
-- No `.github/workflows/` exists yet -- the daily scheduled run described in step 5 is not yet implemented. Runs today require manually invoking `python3 src/main.py` with the env vars set.
+- `.github/workflows/daily-search.yml` runs the search daily at 13:00 UTC (7am MDT) and can be triggered manually from the Actions tab (`workflow_dispatch`). It commits the updated `seen_listings.json` back to `main` after each run so dedup persists across runs. Autotrader is skipped in CI (`ENABLE_AUTOTRADER=false`) until an unlocker is added.
+- Note: GitHub disables scheduled workflows after ~60 days without repository activity. If alerts stop, check the Actions tab for a "workflow disabled" banner and re-enable it.
 
 ### 5. First run
 
@@ -52,4 +53,3 @@ Notifications: Discord webhook confirmed firing end-to-end. `notify.py` now spli
 - Autotrader needs a working unlocker (Bright Data or similar) -- nodriver alone is bot-blocked. See "Bright Data" section above.
 - `seen_listings.json` dedup relies on listing IDs being stable across runs -- verify this holds for each site.
 - Dealership-only inventory (not on any aggregator) isn't covered. Add specific dealer scrapers if needed.
-- No scheduled/CI run exists yet -- `.github/workflows/daily-search.yml` referenced in earlier docs was never created.
