@@ -60,41 +60,37 @@ async def probe_cargurus(browser, criteria):
 
 
 async def probe_carmax(browser, criteria):
-    # v2: CDP request capture caught nothing; read the page's own resource
-    # timing log instead, then re-fetch the search API from page context.
+    # v3: store+model URL confirmed working; no API discoverable, so dump
+    # the listing-tile DOM structure to design an HTML parser.
     print(SEP)
-    print("CARMAX v2")
-    tab = await browser.get("https://www.carmax.com/cars/7167")
+    print("CARMAX v3")
+    tab = await browser.get("https://www.carmax.com/cars/7167/hyundai/ioniq-5")
     await asyncio.sleep(15)
+    print("title:", await tab.evaluate("document.title"))
 
     js = r"""
-    (async () => {
-      const urls = performance.getEntriesByType('resource').map(e => e.name);
-      const interesting = urls.filter(u =>
-        /carmax\.com/.test(u)
-        && /api|search|inventory|vehicles|graphql/i.test(u)
-        && !/\.(js|css|png|jpe?g|svg|woff2?|gif)([?#]|$)/i.test(u));
-      const out = {total_resources: urls.length, interesting: interesting.slice(0, 40)};
-      const cand = interesting.find(u => /search|vehicles|inventory/i.test(u));
-      if (cand) {
-        try {
-          const r = await fetch(cand, {headers: {accept: 'application/json'}});
-          out.candidate = cand;
-          out.status = r.status;
-          out.body = (await r.text()).slice(0, 4000);
-        } catch (e) { out.fetchError = String(e); }
+    (() => {
+      const out = {};
+      const links = [...document.querySelectorAll('a[href*="/car/"]')];
+      out.carLinkCount = links.length;
+      out.sampleHrefs = links.slice(0, 6).map(a => a.getAttribute('href'));
+      if (links.length) {
+        const tile = links[0].closest('article')
+          || links[0].closest('[class*="tile" i]')
+          || links[0].closest('li')
+          || links[0].parentElement;
+        out.tileTag = tile ? tile.tagName + '.' + tile.className : null;
+        out.tileHTML = tile ? tile.outerHTML.slice(0, 7000) : links[0].outerHTML.slice(0, 3000);
       }
+      const stateKeys = Object.keys(window).filter(k => /state|initial|data|next|apollo/i.test(k));
+      out.stateKeys = stateKeys.slice(0, 20);
+      const nextData = document.getElementById('__NEXT_DATA__');
+      if (nextData) out.nextDataHead = nextData.textContent.slice(0, 1500);
       return JSON.stringify(out);
     })()
     """
-    result = await tab.evaluate(js, await_promise=True)
-    print(result if isinstance(result, str) else json.dumps(result, default=str)[:8000])
-
-    print("--- combined store+model path test ---")
-    await tab.get("https://www.carmax.com/cars/7167/hyundai/ioniq-5")
-    await asyncio.sleep(8)
-    print("final url:", await tab.evaluate("location.href"))
-    print("title:", await tab.evaluate("document.title"))
+    result = await tab.evaluate(js)
+    print(result if isinstance(result, str) else json.dumps(result, default=str)[:12000])
 
 
 async def main():
