@@ -44,9 +44,12 @@ jobs:
           # Autotrader is bot-blocked without an unlocker (see README);
           # skip it until Bright Data or similar is wired in.
           ENABLE_AUTOTRADER: "false"
-        # nodriver runs headless=False, so give it a virtual display
+        # nodriver runs headless=False, so give it a virtual display.
+        # The throwaway Chrome launch warms cold-runner caches so the
+        # first nodriver connect doesn't time out (see browser_fetch.py).
         run: |
           sudo apt-get install -y xvfb
+          timeout 30 google-chrome --headless=new --no-sandbox --disable-dev-shm-usage --dump-dom about:blank > /dev/null 2>&1 || true
           xvfb-run -a python src/main.py
 
       - name: Commit updated seen listings

@@ -25,11 +25,22 @@ def _find_chrome() -> str:
 
 
 async def start_browser() -> uc.Browser:
-    return await uc.start(
-        headless=False,
-        browser_executable_path=_find_chrome(),
-        browser_args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-background-networking"],
-    )
+    # On a cold machine (fresh CI runner), Chrome's first launch can take
+    # longer to expose its DevTools socket than nodriver waits, raising
+    # "Failed to connect to browser". Retry: the relaunch hits warm caches.
+    last_exc = None
+    for attempt in range(1, 4):
+        try:
+            return await uc.start(
+                headless=False,
+                browser_executable_path=_find_chrome(),
+                browser_args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-background-networking"],
+            )
+        except Exception as e:
+            last_exc = e
+            print(f"Browser start attempt {attempt}/3 failed: {e}")
+            await asyncio.sleep(5)
+    raise last_exc
 
 
 async def stop_browser(browser: uc.Browser) -> None:
