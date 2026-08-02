@@ -60,50 +60,50 @@ async def probe_cargurus(browser, criteria):
 
 
 async def probe_carmax(browser, criteria):
-    from nodriver import cdp
-
+    # v2: CDP request capture caught nothing; read the page's own resource
+    # timing log instead, then re-fetch the search API from page context.
     print(SEP)
-    print("CARMAX")
-    api_calls = []
-    tab = await browser.get("about:blank")
+    print("CARMAX v2")
+    tab = await browser.get("https://www.carmax.com/cars/7167")
+    await asyncio.sleep(15)
 
-    def on_request(ev, *rest):
-        u = ev.request.url
-        if "carmax.com" in u and ("api" in u.lower() or "search" in u.lower()):
-            api_calls.append(u)
+    js = r"""
+    (async () => {
+      const urls = performance.getEntriesByType('resource').map(e => e.name);
+      const interesting = urls.filter(u =>
+        /carmax\.com/.test(u)
+        && /api|search|inventory|vehicles|graphql/i.test(u)
+        && !/\.(js|css|png|jpe?g|svg|woff2?|gif)([?#]|$)/i.test(u));
+      const out = {total_resources: urls.length, interesting: interesting.slice(0, 40)};
+      const cand = interesting.find(u => /search|vehicles|inventory/i.test(u));
+      if (cand) {
+        try {
+          const r = await fetch(cand, {headers: {accept: 'application/json'}});
+          out.candidate = cand;
+          out.status = r.status;
+          out.body = (await r.text()).slice(0, 4000);
+        } catch (e) { out.fetchError = String(e); }
+      }
+      return JSON.stringify(out);
+    })()
+    """
+    result = await tab.evaluate(js, await_promise=True)
+    print(result if isinstance(result, str) else json.dumps(result, default=str)[:8000])
 
-    tab.add_handler(cdp.network.RequestWillBeSent, on_request)
-
-    for target in (
-        "https://www.carmax.com/cars/7167",
-        "https://www.carmax.com/cars/hyundai/ioniq-5",
-    ):
-        print(f"--- loading {target} ---")
-        try:
-            await tab.get(target)
-            await asyncio.sleep(12)
-            print("final url:", await tab.evaluate("location.href"))
-            print("title:", await tab.evaluate("document.title"))
-            body = await tab.evaluate("document.body.innerText.slice(0, 600)")
-            print("body snippet:", repr(body))
-        except Exception as e:
-            print(f"probe error: {e!r}")
-
-    print(f"--- captured {len(api_calls)} api-ish requests (deduped by path) ---")
-    seen = set()
-    for u in api_calls:
-        base = u.split("?")[0]
-        if base in seen:
-            continue
-        seen.add(base)
-        print(u[:600])
+    print("--- combined store+model path test ---")
+    await tab.get("https://www.carmax.com/cars/7167/hyundai/ioniq-5")
+    await asyncio.sleep(8)
+    print("final url:", await tab.evaluate("location.href"))
+    print("title:", await tab.evaluate("document.title"))
 
 
 async def main():
     criteria = load_criteria()
     browser = await start_browser()
     try:
-        for probe in (probe_carscom, probe_cargurus, probe_carmax):
+        # carscom/cargurus probes answered (seller zip / tile distance field);
+        # only CarMax still needs API discovery.
+        for probe in (probe_carmax,):
             try:
                 await probe(browser, criteria)
             except Exception as e:
