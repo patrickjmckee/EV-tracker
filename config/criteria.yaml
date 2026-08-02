@@ -4,6 +4,10 @@ price_min: 20000
 price_max: 55000
 year_min: 2024
 
+# CarMax store to search (inventory is store-scoped, so results are
+# inherently in-radius). 7167 = Salt Lake (South Jordan).
+carmax_store_id: "7167"
+
 models:
   - make: Hyundai
     model: Ioniq 5

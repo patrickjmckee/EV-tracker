@@ -22,6 +22,14 @@ def notify_new_listings(listings: list[dict]) -> None:
     _send_discord(listings)
 
 
+def _where(listing: dict) -> str:
+    where = str(listing.get("location") or "?")
+    d = listing.get("distance_miles")
+    if isinstance(d, (int, float)):
+        where += f", {d:.0f} mi"
+    return where
+
+
 def _send_ntfy(listing: dict) -> None:
     if not NTFY_TOPIC:
         return
@@ -29,7 +37,7 @@ def _send_ntfy(listing: dict) -> None:
     price = listing.get("price", "?")
     requests.post(
         f"{NTFY_SERVER}/{NTFY_TOPIC}",
-        data=f"{title} - {price}".encode("utf-8"),
+        data=f"{title} - {price} ({_where(listing)})".encode("utf-8"),
         headers={
             "Title": "New EV match",
             "Click": listing.get("url", ""),
@@ -71,7 +79,7 @@ def _send_discord(listings: list[dict]) -> None:
     if not DISCORD_WEBHOOK_URL:
         return
     lines = [
-        f"**{l.get('title')}** - {l.get('price')} - [{l.get('source')}]({l.get('url')})"
+        f"**{l.get('title')}** - {l.get('price')} - {_where(l)} - [{l.get('source')}]({l.get('url')})"
         for l in listings
     ]
     for i, content in enumerate(_chunk_discord_lines(lines)):

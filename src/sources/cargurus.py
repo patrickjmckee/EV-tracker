@@ -133,6 +133,9 @@ def _parse(html: str) -> list[dict]:
             ),
             "dealer": seller.get("sellerName"),
             "location": seller.get("displayLocation"),
+            # Site-computed miles from the search zip; present on normal
+            # tiles, may be absent on delivery/featured ones.
+            "distance_miles": item.get("distance"),
         })
 
     return listings

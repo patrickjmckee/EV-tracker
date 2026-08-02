@@ -68,6 +68,15 @@ def _parse(html: str) -> list[dict]:
 
 async def search(browser, make: str, model: str, criteria: dict) -> list[dict]:
     from browser_fetch import fetch_page
+    from geo import zip_distance_miles
+
     url = _build_url(make, model, criteria)
     html = await fetch_page(browser, url, wait_seconds=15)
-    return _parse(html)
+    listings = _parse(html)
+    # Cars.com ignores maximum_distance for "delivery" listings; the card
+    # carries only the seller zip, so compute the distance ourselves.
+    for listing in listings:
+        listing["distance_miles"] = zip_distance_miles(
+            criteria["zip_code"], listing.get("location") or ""
+        )
+    return listings

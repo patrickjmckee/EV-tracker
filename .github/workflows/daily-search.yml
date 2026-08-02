@@ -5,6 +5,11 @@ on:
     # 13:00 UTC = 7am MDT / 6am MST (zip 84015)
     - cron: "0 13 * * *"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print new listings instead of notifying/saving"
+        type: boolean
+        default: false
 
 permissions:
   contents: write # push updated seen_listings.json
@@ -44,6 +49,8 @@ jobs:
           # Autotrader is bot-blocked without an unlocker (see README);
           # skip it until Bright Data or similar is wired in.
           ENABLE_AUTOTRADER: "false"
+          # Empty on scheduled runs, which the && short-circuits to 'false'.
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
         # nodriver runs headless=False, so give it a virtual display.
         # The throwaway Chrome launch warms cold-runner caches so the
         # first nodriver connect doesn't time out (see browser_fetch.py).
