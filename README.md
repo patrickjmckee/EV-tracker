@@ -7,7 +7,7 @@ Daily search across Cars.com, Autotrader, CarGurus for matching EVs. Pushes new 
 ### 1. ntfy.sh (phone push)
 
 - Install the ntfy app (iOS/Android).
-- Pick a unique topic name, e.g. `patrick-ev-alerts-x7k2` (must be unique globally, no signup needed).
+- Pick a unique topic name, e.g. `my-ev-alerts-a1b2c3` (must be unique globally, no signup needed). Treat it like a password -- anyone who knows it can push notifications to your phone.
 - Subscribe to that topic in the app.
 
 ### 2. Discord webhook

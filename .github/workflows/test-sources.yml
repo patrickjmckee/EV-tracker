@@ -1,0 +1,25 @@
+name: Test sources (raw data probe)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run probe
+        run: |
+          sudo apt-get install -y xvfb
+          timeout 30 google-chrome --headless=new --no-sandbox --disable-dev-shm-usage --dump-dom about:blank > /dev/null 2>&1 || true
+          xvfb-run -a python scripts/probe_sources.py
