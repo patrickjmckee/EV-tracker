@@ -1,6 +1,6 @@
 # EV Tracker
 
-Daily search across Cars.com, Autotrader, CarGurus for matching EVs. Pushes new matches via ntfy.sh (phone push) and Discord webhook.
+Daily search across Cars.com, CarGurus, CarMax (and Autotrader, currently disabled) for matching EVs. Pushes new matches via ntfy.sh (phone push) and Discord webhook. Listings beyond `radius_miles` are dropped even when sites return them as "delivery" inventory; CarMax is scoped to one store (`carmax_store_id` in `config/criteria.yaml`).
 
 ## Setup
 
@@ -36,15 +36,18 @@ Daily search across Cars.com, Autotrader, CarGurus for matching EVs. Pushes new 
 - Manual run: `NTFY_TOPIC=... DISCORD_WEBHOOK_URL=... python3 src/main.py` from the repo root.
 - Optional: set `NTFY_SERVER` to point at a self-hosted ntfy instance instead of `https://ntfy.sh` (defaults to ntfy.sh if unset).
 
-## Verified status (2026-07-24)
+## Verified status (2026-08-01, CI dry run)
 
-Full 9-model sweep run against live sites:
+Full 9-model sweep on GitHub Actions (run 30726763294): 210 listings found, 145 dropped as beyond the 100 mi radius, 65 kept, 14 new.
 
 | Site | Result |
 | --- | --- |
-| Cars.com | Works -- 8/9 models returned results (Bolt EUV genuinely has 0 matching inventory) |
-| CarGurus | Works -- 7/9 models returned results (Bolt/Bolt EUV genuinely have 0 matching inventory, confirmed via CarGurus's own `totalListings: 0`) |
-| Autotrader | Bot-blocked -- 0/9 models, confirmed via captcha page, not a parser bug |
+| Cars.com | Works, but flaky per-page -- returned 0 for several models this run that CarGurus covered (Cloudflare roulette; watch, don't panic on single-run zeros) |
+| CarGurus | Works -- site-provided tile distance used for radius filtering |
+| CarMax | Works -- store-scoped (Salt Lake South Jordan), year/price filtered in code, "similar match" tiles skipped |
+| Autotrader | Bot-blocked, disabled in CI (`ENABLE_AUTOTRADER=false`) pending an unlocker |
+
+To test changes safely: Actions > Daily EV search > Run workflow > check `dry_run` -- prints would-be notifications without sending or updating `seen_listings.json`.
 
 Notifications: Discord webhook confirmed firing end-to-end. `notify.py` now splits large batches into multiple Discord messages (was silently truncating past 2000 chars) and catches per-listing/per-chunk send failures so one bad request no longer aborts the run before `seen_listings.json` is saved.
 

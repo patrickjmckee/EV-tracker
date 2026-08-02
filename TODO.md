@@ -21,7 +21,16 @@
 - [x] Verified full CI run end-to-end: 9 models, 239 listings, 99 new, notifications received, bot committed seen_listings.json
 - [x] Added `.github/workflows/debug-browser.yml` (manual dispatch) -- keep for diagnosing future Chrome/nodriver breakage on runners
 
+## Done (2026-08-01, evening)
+
+- [x] Radius now enforced: 145 out-of-market "delivery" listings dropped in validation dry run (was the El Paso/Las Vegas noise)
+- [x] CarMax source added, scoped to Salt Lake South Jordan store (`carmax_store_id: 7167`); found 12 cars in validation
+- [x] Notifications include location + distance
+- [x] `dry_run` workflow input for safe testing
+
 ## Next steps
 
+- [ ] Tighten criteria if volume still too high after radius fix (levers: mileage cap, drop `also_consider` models, narrower price/year)
+- [ ] Watch Cars.com per-page flakiness -- several models returned 0 in the 2026-08-01 dry run that CarGurus covered
 - [ ] Add an unlocker (Bright Data or alternative) for Autotrader, then flip `ENABLE_AUTOTRADER` back on in the workflow and add `BRIGHTDATA_API_KEY` secret
 - [ ] Re-check CarGurus entity IDs periodically -- confirmed correct as of 2026-07-24 but noted as liable to drift
