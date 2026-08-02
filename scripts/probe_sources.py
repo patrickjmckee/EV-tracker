@@ -71,21 +71,19 @@ async def probe_carmax(browser, criteria):
     js = r"""
     (() => {
       const out = {};
-      const links = [...document.querySelectorAll('a[href*="/car/"]')];
-      out.carLinkCount = links.length;
-      out.sampleHrefs = links.slice(0, 6).map(a => a.getAttribute('href'));
-      if (links.length) {
-        const tile = links[0].closest('article')
-          || links[0].closest('[class*="tile" i]')
-          || links[0].closest('li')
-          || links[0].parentElement;
-        out.tileTag = tile ? tile.tagName + '.' + tile.className : null;
-        out.tileHTML = tile ? tile.outerHTML.slice(0, 7000) : links[0].outerHTML.slice(0, 3000);
+      const link = document.querySelector('a[href*="/car/"]');
+      if (!link) { out.noLinks = true; return JSON.stringify(out); }
+      let tile = null;
+      const chain = [];
+      for (let p = link; p && p !== document.body; p = p.parentElement) {
+        chain.push(p.tagName + '.' + String(p.className).slice(0, 60));
+        if (!tile && /\$\s?[\d,]+/.test(p.innerText || '')) tile = p;
       }
-      const stateKeys = Object.keys(window).filter(k => /state|initial|data|next|apollo/i.test(k));
-      out.stateKeys = stateKeys.slice(0, 20);
-      const nextData = document.getElementById('__NEXT_DATA__');
-      if (nextData) out.nextDataHead = nextData.textContent.slice(0, 1500);
+      out.chain = chain;
+      if (tile) {
+        out.tileText = (tile.innerText || '').slice(0, 800);
+        out.tileHTML = tile.outerHTML.slice(0, 9000);
+      }
       return JSON.stringify(out);
     })()
     """
