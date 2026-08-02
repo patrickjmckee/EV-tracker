@@ -113,9 +113,10 @@ async def run_async():
             for l in new_listings:
                 d = l.get("distance_miles")
                 dist = f"{d:.0f} mi" if isinstance(d, (int, float)) else "? mi"
+                extras = ", ".join(l.get("extras") or []) or "-"
                 print(
                     f"  [{l['source']}] {l.get('title')} | {l.get('price')} "
-                    f"| loc={l.get('location')} ({dist}) | {l.get('url')}"
+                    f"| loc={l.get('location')} ({dist}) | {extras} | {l.get('url')}"
                 )
         else:
             notify_new_listings(new_listings)

@@ -15,6 +15,7 @@ BASE_URL = "https://www.carmax.com/cars"
 
 _PRICE_RE = re.compile(r"\$([\d,]+)")
 _MILEAGE_RE = re.compile(r"([\d.]+)K\s*mi", re.I)
+_SHIPPING_RE = re.compile(r"(\$[\d,]+|Free)\s*Shipping", re.I)
 _YEAR_RE = re.compile(r"^(?:19|20)\d{2}\b")
 _STOCK_RE = re.compile(r"/car/(\d+)")
 # Smallest ancestor holding a price is the tile root; anything with this much
@@ -81,6 +82,15 @@ def _parse(html: str, make: str, model: str, criteria: dict) -> list[dict]:
         if price and not (criteria["price_min"] <= price <= criteria["price_max"]):
             continue
 
+        # Tile text says "$249 Shipping | Est. arrival ..." for transfers
+        # from other CarMax stores; no shipping text means it's on the lot.
+        extras = []
+        shipping_m = _SHIPPING_RE.search(info["text"])
+        if shipping_m:
+            extras.append(f"{shipping_m.group(1)} shipping to store")
+        elif info["text"]:
+            extras.append("At store")
+
         listings.append({
             "source": "carmax",
             "id": f"carmax-{stock}",
@@ -94,6 +104,7 @@ def _parse(html: str, make: str, model: str, criteria: dict) -> list[dict]:
             "dealer": store_name,
             "location": store_name,
             "distance_miles": None,
+            "extras": extras,
         })
     return listings
 

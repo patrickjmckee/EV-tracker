@@ -9,6 +9,13 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.cars.com/shopping/results/"
 
+_DRIVETRAIN_ABBREV = {
+    "All-wheel Drive": "AWD",
+    "Front-wheel Drive": "FWD",
+    "Rear-wheel Drive": "RWD",
+    "Four-wheel Drive": "4WD",
+}
+
 _MAKE_SLUG = {
     "chevrolet": "chevrolet",
     "hyundai": "hyundai",
@@ -50,6 +57,17 @@ def _parse(html: str) -> list[dict]:
         model = details.get("model", "")
         trim = details.get("trim", "")
 
+        # Card link element carries vehicle attributes as data-* attrs;
+        # a bare data-cpoindicator attr marks certified pre-owned.
+        extras = []
+        link = card.select_one("a[data-card-link]")
+        if link is not None:
+            if link.has_attr("data-cpoindicator"):
+                extras.append("CPO")
+            drivetrain = link.get("data-drivetrain")
+            if drivetrain:
+                extras.append(_DRIVETRAIN_ABBREV.get(drivetrain, drivetrain))
+
         listings.append({
             "source": "cars.com",
             "id": listing_id,
@@ -62,6 +80,7 @@ def _parse(html: str) -> list[dict]:
             "url": f"https://www.cars.com/vehicledetail/{listing_id}/",
             "dealer": details.get("seller", {}).get("customerId"),
             "location": details.get("seller", {}).get("zip"),
+            "extras": extras,
         })
     return listings
 

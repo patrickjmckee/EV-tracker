@@ -23,11 +23,13 @@ models:
     model: Leaf
 
 # Additional reliable EVs worth including given the use case
-# (80% highway, ~120mi round trip commute, 2x/week):
-also_consider:
-  - make: Tesla
-    model: Model 3
-  - make: Kia
-    model: Niro EV
-  - make: Chevrolet
-    model: Bolt EUV
+# (80% highway, ~120mi round trip commute, 2x/week).
+# Disabled 2026-08-01 to cut alert volume (Model 3 alone was 30+ matches);
+# uncomment to re-enable.
+# also_consider:
+#   - make: Tesla
+#     model: Model 3
+#   - make: Kia
+#     model: Niro EV
+#   - make: Chevrolet
+#     model: Bolt EUV

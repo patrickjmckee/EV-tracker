@@ -78,10 +78,14 @@ def _chunk_discord_lines(lines: list[str]) -> list[str]:
 def _send_discord(listings: list[dict]) -> None:
     if not DISCORD_WEBHOOK_URL:
         return
-    lines = [
-        f"**{l.get('title')}** - {l.get('price')} - {_where(l)} - [{l.get('source')}]({l.get('url')})"
-        for l in listings
-    ]
+    lines = []
+    for l in listings:
+        extras = ", ".join(l.get("extras") or [])
+        extras = f" ({extras})" if extras else ""
+        lines.append(
+            f"**{l.get('title')}** - {l.get('price')} - {_where(l)}{extras}"
+            f" - [{l.get('source')}]({l.get('url')})"
+        )
     for i, content in enumerate(_chunk_discord_lines(lines)):
         try:
             requests.post(DISCORD_WEBHOOK_URL, json={"content": content}, timeout=10)

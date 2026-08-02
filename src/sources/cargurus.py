@@ -25,6 +25,13 @@ _ENTITY_MAP: dict[tuple[str, str], str] = {
     ("Tesla", "Model 3"): "m112/d2475",
 }
 
+_DRIVETRAIN_ABBREV = {
+    "All-Wheel Drive": "AWD",
+    "Front-Wheel Drive": "FWD",
+    "Rear-Wheel Drive": "RWD",
+    "Four-Wheel Drive": "4WD",
+}
+
 # make-only IDs used as fallback
 _MAKE_IDS: dict[str, str] = {
     "Chevrolet": "m1",
@@ -118,10 +125,29 @@ def _parse(html: str) -> list[dict]:
         ontology = item.get("ontologyData", {})
         seller = item.get("sellerData", {})
 
+        # listingTitle is "2024 Hyundai Ioniq 5" -- append the trim if known
+        title = item.get("listingTitle", "")
+        trim = ontology.get("trimName")
+        if trim and trim.lower() not in title.lower():
+            title = f"{title} {trim}"
+
+        extras = []
+        rating = item.get("dealRating")
+        if rating:
+            extras.append(rating.replace("_", " ").capitalize())
+        ev_range = (item.get("evBatteryData") or {}).get("range")
+        if ev_range:
+            extras.append(f"{ev_range} range")
+        if item.get("isCpo"):
+            extras.append("CPO")
+        drivetrain = item.get("localizedDrivetrain")
+        if drivetrain:
+            extras.append(_DRIVETRAIN_ABBREV.get(drivetrain, drivetrain))
+
         listings.append({
             "source": "cargurus",
             "id": str(listing_id),
-            "title": item.get("listingTitle", ""),
+            "title": title,
             "price": str(price) if price is not None else None,
             "mileage": str(mileage) if mileage is not None else None,
             "year": ontology.get("carYear"),
@@ -136,6 +162,7 @@ def _parse(html: str) -> list[dict]:
             # Site-computed miles from the search zip; present on normal
             # tiles, may be absent on delivery/featured ones.
             "distance_miles": item.get("distance"),
+            "extras": extras,
         })
 
     return listings
