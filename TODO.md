@@ -30,7 +30,8 @@
 
 ## Next steps
 
-- [ ] Tighten criteria if volume still too high after radius fix (levers: mileage cap, drop `also_consider` models, narrower price/year)
+- [ ] Review 2026-08-02 morning run output (expect ~14 CarMax backfill alerts + genuinely new listings), then decide criteria tweaks
+- [ ] Tighten criteria if volume still too high after radius fix (remaining levers: mileage cap -- none exists today -- narrower price/year, radius)
 - [ ] Watch Cars.com per-page flakiness -- several models returned 0 in the 2026-08-01 dry run that CarGurus covered
 - [ ] Watch CarMax tile-count variance between runs (Ioniq 5: 1 vs 8 in back-to-back dry runs; likely lazy-render timing). Dedup self-heals across days; bump carmax wait_seconds if it persists
 - [ ] Add an unlocker (Bright Data or alternative) for Autotrader, then flip `ENABLE_AUTOTRADER` back on in the workflow and add `BRIGHTDATA_API_KEY` secret
