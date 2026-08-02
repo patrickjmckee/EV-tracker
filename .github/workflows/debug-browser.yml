@@ -1,0 +1,79 @@
+name: Debug browser startup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt zendriver
+
+      - name: Chrome version
+        run: |
+          which google-chrome && google-chrome --version
+
+      - name: Raw Chrome CDP under xvfb
+        continue-on-error: true
+        run: |
+          xvfb-run -a bash -c '
+            google-chrome --no-sandbox --disable-dev-shm-usage --remote-debugging-port=9222 --user-data-dir=/tmp/ud about:blank > /tmp/chrome.log 2>&1 &
+            sleep 8
+            echo "--- CDP /json/version ---"
+            curl -s http://127.0.0.1:9222/json/version || echo "CDP CONNECT FAILED"
+            echo "--- chrome stderr/stdout ---"
+            cat /tmp/chrome.log
+          '
+
+      - name: Write test script
+        run: |
+          cat > /tmp/test_drv.py <<'EOF'
+          import asyncio, logging, sys
+          logging.basicConfig(level=logging.DEBUG)
+          mod_name, mode = sys.argv[1], sys.argv[2]
+          uc = __import__(mod_name)
+
+          async def main():
+              b = await uc.start(
+                  headless=(mode == "headless"),
+                  browser_executable_path="/usr/bin/google-chrome",
+                  browser_args=["--no-sandbox", "--disable-dev-shm-usage"],
+              )
+              tab = await b.get("https://example.com")
+              await asyncio.sleep(2)
+              title = await tab.evaluate("document.title")
+              print(f"SUCCESS {mod_name} {mode} title={title!r}")
+              try:
+                  r = b.stop()
+                  if asyncio.iscoroutine(r):
+                      await r
+              except Exception as e:
+                  print(f"(stop error, ignoring: {e})")
+
+          asyncio.run(main())
+          EOF
+
+      - name: nodriver headed (repro of daily-search config)
+        continue-on-error: true
+        run: xvfb-run -a timeout 120 python /tmp/test_drv.py nodriver headed
+
+      - name: nodriver headless
+        continue-on-error: true
+        run: xvfb-run -a timeout 120 python /tmp/test_drv.py nodriver headless
+
+      - name: zendriver headed
+        continue-on-error: true
+        run: xvfb-run -a timeout 120 python /tmp/test_drv.py zendriver headed
+
+      - name: zendriver headless
+        continue-on-error: true
+        run: xvfb-run -a timeout 120 python /tmp/test_drv.py zendriver headless
