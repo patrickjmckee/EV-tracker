@@ -51,3 +51,60 @@ on attempt 1 in the very first fixed run -- it is load-bearing, not paranoia.
 2026-07-24). Model 3 alone produced 30+ matches per sweep and dominated alert
 volume; Patrick chose to cut it and re-evaluate criteria after observing the
 2026-08-02 morning run.
+
+## 2026-08-03: Carvana filters via cvnaid, exempt from the radius filter
+
+**Decision:** Carvana source builds `/cars/filters?cvnaid=<base64 JSON>` URLs
+({makes/parentModels, price{min,max}, year{min}}), parses per-tile JSON-LD
+(`data-testid="vehicle-ld"`), paginates with `&page=N` until a page renders
+zero tiles (8-page cap). Listings carry `distance_miles: None` so the radius
+filter keeps them (fail-open) -- intentionally: Carvana is national
+delivery-only inventory with no store or distance concept.
+
+**Why:** Plain query params are ignored by Carvana's SRP (`?price=`,
+`?sortBy=` -- verified live), and pretty slugs only exist for popular models
+(`/cars/toyota-bz4x` silently falls back to the ~54k-car all-cars page, which
+is why the parser guards on results-count > 10000). The `cvnaid` mechanism was
+reverse-engineered from the page's applied-filters state and verified to
+filter server-side (Ioniq 5: 161 -> 111 with price band, -> 98 with year).
+Filter takes the PARENT model name (parent "bZ" covers bZ + bZ4X, "Bolt"
+covers Bolt EV + EUV), so exact model matching happens per-tile in code.
+Patrick chose Carvana knowing it is delivery-based, and confirmed 2026-08-03
+that it stays national -- he filters those alerts manually. Verified live: no
+ZIP key exists (cvnaid `zip`/`zipCode`/`location` keys and a `&zip=` query
+param are all silently ignored; unknown cvnaid keys don't break the filter).
+Carvana's delivery market comes only from the `CVCurrentZip` cookie
+(IP-geolocated), so a radius proxy would need cookie injection -- not worth
+it for a manual-filter workflow.
+
+## 2026-08-03: Toyota bZ4X and bZ tracked as two models
+
+**Decision:** Both `bZ4X` and `bZ` entries in criteria.yaml.
+
+**Why:** Toyota renamed the bZ4X to "bZ" for the 2026 model year; used
+inventory carries both names. Sites treat them as distinct models (CarGurus
+m7/d3220 vs m7/d3515). Tracking only one would miss the other's listings.
+
+## 2026-08-03: Within-run dedup by listing id in main.py
+
+**Decision:** After collection, keep the first listing per id before the
+radius filter and seen-check.
+
+**Why:** Three observed/known overlap paths: CarGurus returned the same tile
+twice in one search (featured + organic, seen live with a Provo bZ4X);
+CarMax's substring title match lets a "bZ" search claim bZ4X tiles; Carvana's
+bZ and bZ4X searches share the same parent filter. Without this, one car can
+alert twice in the same run (the seen-file only dedups across runs).
+
+## 2026-08-03: Windows local dev attaches to a hand-launched Chrome
+
+**Decision:** `NODRIVER_ATTACH=host:port` makes `start_browser()` attach to an
+existing browser instead of spawning; `stop_browser()` leaves attached
+browsers running. `_find_chrome()` also knows Windows Chrome/Edge/Playwright
+paths.
+
+**Why:** nodriver's own spawn is broken on Windows (this machine): Chrome
+re-execs as a launcher that exits immediately, and nodriver's short CDP poll
+gives up -- verified that the identical spawn works when polled independently.
+Attach sidesteps it. Headed Chrome is required regardless; `--headless=new`
+advertises HeadlessChrome in the UA and Cloudflare blocks it.

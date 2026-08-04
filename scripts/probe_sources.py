@@ -91,13 +91,28 @@ async def probe_carmax(browser, criteria):
     print(result if isinstance(result, str) else json.dumps(result, default=str)[:12000])
 
 
+async def probe_carvana(browser, criteria):
+    from sources import carvana
+
+    print(SEP)
+    print("CARVANA")
+    url = carvana._build_url("Hyundai", "Ioniq 5", criteria, page=1)
+    print("url:", url)
+    html = await fetch_page(browser, url, wait_seconds=12)
+    blocks = carvana._LD_RE.findall(html)
+    print(f"vehicle-ld blocks: {len(blocks)}")
+    for i, block in enumerate(blocks[:3]):
+        print(f"--- vehicle-ld {i} raw JSON ---")
+        print(block[:2000])
+
+
 async def main():
     criteria = load_criteria()
     browser = await start_browser()
     try:
-        # carscom/cargurus probes answered (seller zip / tile distance field);
-        # only CarMax still needs API discovery.
-        for probe in (probe_carmax,):
+        # carscom/cargurus/carmax probes answered; carvana active for the
+        # new-source work (2026-08-03).
+        for probe in (probe_carvana,):
             try:
                 await probe(browser, criteria)
             except Exception as e:

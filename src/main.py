@@ -7,7 +7,7 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from sources import carscom, autotrader, cargurus, carmax
+from sources import carscom, autotrader, cargurus, carmax, carvana
 from notify import notify_new_listings
 
 SEEN_FILE = os.path.join(os.path.dirname(__file__), "..", "seen_listings.json")
@@ -16,6 +16,7 @@ ENABLE_CARSCOM = os.environ.get("ENABLE_CARSCOM", "true").lower() == "true"
 ENABLE_AUTOTRADER = os.environ.get("ENABLE_AUTOTRADER", "true").lower() == "true"
 ENABLE_CARGURUS = os.environ.get("ENABLE_CARGURUS", "true").lower() == "true"
 ENABLE_CARMAX = os.environ.get("ENABLE_CARMAX", "true").lower() == "true"
+ENABLE_CARVANA = os.environ.get("ENABLE_CARVANA", "true").lower() == "true"
 
 # Print new listings instead of notifying/saving -- safe for testing changes
 # without spamming notifications or polluting the dedup state.
@@ -85,8 +86,28 @@ async def run_async():
                     print(f"    carmax: {len(results)}")
                 except Exception as e:
                     print(f"    carmax error: {e}")
+
+            if ENABLE_CARVANA:
+                try:
+                    results = await carvana.search(browser, make, model, criteria)
+                    all_listings += results
+                    print(f"    carvana: {len(results)}")
+                except Exception as e:
+                    print(f"    carvana error: {e}")
     finally:
         await stop_browser(browser)
+
+    # Model searches can overlap (CarMax title matching is substring-based,
+    # Carvana's bZ/bZ4X share a parent filter); keep one listing per id.
+    unique: dict = {}
+    no_id = []
+    for l in all_listings:
+        lid = l.get("id")
+        if lid is None:
+            no_id.append(l)
+        elif lid not in unique:
+            unique[lid] = l
+    all_listings = list(unique.values()) + no_id
 
     # Sites return out-of-radius "delivery" listings despite the radius URL
     # param (seen: El Paso TX, Las Vegas NV from a 100mi UT search). Drop

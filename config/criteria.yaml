@@ -1,7 +1,7 @@
 zip_code: "84015"
 radius_miles: 100
 price_min: 20000
-price_max: 55000
+price_max: 30000  # was 55000; tightened 2026-08-03
 year_min: 2024
 
 # CarMax store to search (inventory is store-scoped, so results are
@@ -21,6 +21,12 @@ models:
     model: Equinox EV
   - make: Nissan
     model: Leaf
+  # bZ4X was renamed to just "bZ" for the 2026 model year; track both so
+  # 2024-2025 used stock and the renamed 2026 stock both match.
+  - make: Toyota
+    model: bZ4X
+  - make: Toyota
+    model: bZ
 
 # Additional reliable EVs worth including given the use case
 # (80% highway, ~120mi round trip commute, 2x/week).

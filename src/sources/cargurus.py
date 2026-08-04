@@ -23,6 +23,9 @@ _ENTITY_MAP: dict[tuple[str, str], str] = {
     ("Chevrolet", "Equinox EV"): "m1/d3267",
     ("Nissan", "Leaf"): "m12/d2077",
     ("Tesla", "Model 3"): "m112/d2475",
+    # Discovered 2026-08-03 from the Toyota-filtered search's filter data
+    ("Toyota", "bZ4X"): "m7/d3220",
+    ("Toyota", "bZ"): "m7/d3515",
 }
 
 _DRIVETRAIN_ABBREV = {
@@ -39,6 +42,7 @@ _MAKE_IDS: dict[str, str] = {
     "Kia": "m33",
     "Nissan": "m12",
     "Tesla": "m112",
+    "Toyota": "m7",
 }
 
 
